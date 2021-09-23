@@ -1,0 +1,24 @@
+# permissions for end users to edit blenderrenders.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: blenderrender-editor-role
+rules:
+- apiGroups:
+  - openshiftdemos.github.io
+  resources:
+  - blenderrenders
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - openshiftdemos.github.io
+  resources:
+  - blenderrenders/status
+  verbs:
+  - get

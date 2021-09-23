@@ -1,0 +1,7 @@
+apiVersion: openshiftdemos.github.io/v1alpha1
+kind: BlenderRender
+metadata:
+  name: blenderrender-sample
+spec:
+  # Add fields here
+  foo: bar
