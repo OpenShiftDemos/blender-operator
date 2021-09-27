@@ -28,14 +28,20 @@ type BlenderRenderSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// BlendFileLocation is an HTTP(S) URL of a .blend file with the embedded assets
-	BlendFileLocation string `json:"blend_file_location"`
-
-	// OutputFilename is the filename that will be created by the blender run
-	OutputFilename string `json:"output_filename"`
+	// BlendLocation is an HTTP(S) URL of a .blend file with the embedded assets
+	BlendLocation string `json:"blend_location"`
 
 	// RenderType specifies whether this is an `animation` or a single `image` render
 	RenderType string `json:"render_type"`
+
+	// S3Endpoint is the API endpoint for the S3 storage
+	S3Endpoint string `json:"s3_endpoint"`
+
+	// S3Key is the API username/key for the S3 storage
+	S3Key string `json:"s3_key"`
+
+	// S3Secret is the API secret for the S3 storage
+	S3Secret string `json:"s3_secret"`
 }
 
 // BlenderRenderStatus defines the observed state of BlenderRender

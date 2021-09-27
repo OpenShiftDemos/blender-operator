@@ -7,7 +7,19 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - openshiftdemos.github.io
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - blender.openshiftdemos.github.io
   resources:
   - blenderrenders
   verbs:
@@ -19,16 +31,23 @@ rules:
   - update
   - watch
 - apiGroups:
-  - openshiftdemos.github.io
+  - blender.openshiftdemos.github.io
   resources:
   - blenderrenders/finalizers
   verbs:
   - update
 - apiGroups:
-  - openshiftdemos.github.io
+  - blender.openshiftdemos.github.io
   resources:
   - blenderrenders/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list

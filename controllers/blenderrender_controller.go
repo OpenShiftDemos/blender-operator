@@ -19,12 +19,16 @@ package controllers
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	openshiftdemosgithubiov1alpha1 "github.com/openshiftdemos/blender-operator/api/v1alpha1"
+	batchv1 "k8s.io/api/batch/v1"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+
+	blenderv1alpha1 "github.com/openshiftdemos/blender-operator/api/v1alpha1"
 )
 
 // BlenderRenderReconciler reconciles a BlenderRender object
@@ -33,9 +37,11 @@ type BlenderRenderReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=openshiftdemos.github.io,resources=blenderrenders,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=openshiftdemos.github.io,resources=blenderrenders/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=openshiftdemos.github.io,resources=blenderrenders/finalizers,verbs=update
+//+kubebuilder:rbac:groups=blender.openshiftdemos.github.io,resources=blenderrenders,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=blender.openshiftdemos.github.io,resources=blenderrenders/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=blender.openshiftdemos.github.io,resources=blenderrenders/finalizers,verbs=update
+//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -47,9 +53,46 @@ type BlenderRenderReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.9.2/pkg/reconcile
 func (r *BlenderRenderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	log := ctrllog.FromContext(ctx)
+	log.Info("Begin reconcile loop")
 
-	// your logic here
+	// Lookup the BlenderRender instance for this reconcile request
+	blender_render := &blenderv1alpha1.BlenderRender{}
+	err := r.Get(ctx, req.NamespacedName, blender_render)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			log.Info("BlenderRender resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		log.Error(err, "Failed to get BlenderRender")
+		return ctrl.Result{}, err
+	}
+
+	// Check if the job already exists and, if not, create a new one
+	found := &batchv1.Job{}
+	err = r.Get(ctx, types.NamespacedName{Name: blender_render.Name, Namespace: blender_render.Namespace}, found)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new deployment
+		log.Info("Creating a new Job")
+		return ctrl.Result{}, nil
+		//dep := r.deploymentForMemcached(memcached)
+		//log.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
+		//err = r.Create(ctx, dep)
+		//if err != nil {
+		//	log.Error(err, "Failed to create new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
+		//	return ctrl.Result{}, err
+		//}
+		//// Deployment created successfully - return and requeue
+		//return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get Deployment")
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -57,6 +100,7 @@ func (r *BlenderRenderReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 // SetupWithManager sets up the controller with the Manager.
 func (r *BlenderRenderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&openshiftdemosgithubiov1alpha1.BlenderRender{}).
+		For(&blenderv1alpha1.BlenderRender{}).
+		Owns(&batchv1.Job{}).
 		Complete(r)
 }

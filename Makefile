@@ -28,7 +28,7 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# openshiftdemos.github.io/blender-render-operator-bundle:$VERSION and openshiftdemos.github.io/blender-render-operator-catalog:$VERSION.
+# openshiftdemos.github.io/blender-operator-bundle:$VERSION and openshiftdemos.github.io/blender-operator-catalog:$VERSION.
 IMAGE_TAG_BASE ?= quay.io/openshiftdemos/blender-operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.

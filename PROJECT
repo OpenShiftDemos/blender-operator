@@ -4,7 +4,7 @@ layout:
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
-projectName: blender-render-operator
+projectName: blender-operator
 repo: github.com/openshiftdemos/blender-operator
 resources:
 - api:
@@ -12,6 +12,7 @@ resources:
     namespaced: true
   controller: true
   domain: openshiftdemos.github.io
+  group: blender
   kind: BlenderRender
   path: github.com/openshiftdemos/blender-operator/api/v1alpha1
   version: v1alpha1

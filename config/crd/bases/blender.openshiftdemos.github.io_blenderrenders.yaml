@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.6.1
   creationTimestamp: null
-  name: blenderrenders.openshiftdemos.github.io
+  name: blenderrenders.blender.openshiftdemos.github.io
 spec:
-  group: openshiftdemos.github.io
+  group: blender.openshiftdemos.github.io
   names:
     kind: BlenderRender
     listKind: BlenderRenderList
@@ -36,22 +36,29 @@ spec:
           spec:
             description: BlenderRenderSpec defines the desired state of BlenderRender
             properties:
-              blend_file_location:
-                description: BlendFileLocation is an HTTP(S) URL of a .blend file
-                  with the embedded assets
-                type: string
-              output_filename:
-                description: OutputFilename is the filename that will be created by
-                  the blender run
+              blend_location:
+                description: BlendLocation is an HTTP(S) URL of a .blend file with
+                  the embedded assets
                 type: string
               render_type:
                 description: RenderType specifies whether this is an `animation` or
                   a single `image` render
                 type: string
+              s3_endpoint:
+                description: S3Endpoint is the API endpoint for the S3 storage
+                type: string
+              s3_key:
+                description: S3Key is the API username/key for the S3 storage
+                type: string
+              s3_secret:
+                description: S3Secret is the API secret for the S3 storage
+                type: string
             required:
-            - blend_file_location
-            - output_filename
+            - blend_location
             - render_type
+            - s3_endpoint
+            - s3_key
+            - s3_secret
             type: object
           status:
             description: BlenderRenderStatus defines the observed state of BlenderRender
