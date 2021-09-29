@@ -26,6 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	blenderv1alpha1 "github.com/openshiftdemos/blender-operator/api/v1alpha1"
@@ -73,9 +75,19 @@ func (r *BlenderRenderReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
+	// Find if the configmap already exists and, if not, create one
+	cf_found := &corev1.ConfigMap{}
+	err = r.Get(ctx, types.NamespacedName{Name: blender_render.Name, Namespace: blender_render.Namespace}, cf_found)
+	if err != nil && errors.IsNotFound(err) {
+		log.Info("ConfigMap not found - will create")
+	} else if err != nil {
+		log.Error(err, "Failed to get ConfigMap")
+		return ctrl.Result{}, err
+	}
+
 	// Check if the job already exists and, if not, create a new one
-	found := &batchv1.Job{}
-	err = r.Get(ctx, types.NamespacedName{Name: blender_render.Name, Namespace: blender_render.Namespace}, found)
+	job_found := &batchv1.Job{}
+	err = r.Get(ctx, types.NamespacedName{Name: blender_render.Name, Namespace: blender_render.Namespace}, job_found)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new deployment
 		log.Info("Creating a new Job")
@@ -95,6 +107,26 @@ func (r *BlenderRenderReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *BlenderRenderReconciler) createConfigMap(blender_render *blenderv1alpha1.BlenderRender) *corev1.ConfigMap {
+	// labels := labelsForBlenderRender(blender_render.Name)
+
+	config_map := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      blender_render.Name,
+			Namespace: blender_render.Namespace,
+		},
+		Data: {
+			blend_location: blender_render.Spec.BlendLocation
+		}
+	}
+}
+
+// labelsForBlenderRender returns the labels for selecting the resources
+// belonging to the given blender render CR name.
+func labelsForBlenderRender(name string) map[string]string {
+	return map[string]string{"app": "blenderrender", "blenderrender_cr": name}
 }
 
 // SetupWithManager sets up the controller with the Manager.
