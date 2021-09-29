@@ -118,9 +118,13 @@ func (r *BlenderRenderReconciler) createConfigMap(blender_render *blenderv1alpha
 			Namespace: blender_render.Namespace,
 		},
 		Data: {
-			blend_location: blender_render.Spec.BlendLocation
-		}
+			blend_location: blender_render.Spec.BlendLocation,
+		},
 	}
+
+	// set BlenderRender instance as the owner and controller
+	ctrl.SetControllerReference(blender_render, config_map, r.Scheme)
+	return config_map
 }
 
 // labelsForBlenderRender returns the labels for selecting the resources
