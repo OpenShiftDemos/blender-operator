@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -79,7 +80,15 @@ func (r *BlenderRenderReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	cf_found := &corev1.ConfigMap{}
 	err = r.Get(ctx, types.NamespacedName{Name: blender_render.Name, Namespace: blender_render.Namespace}, cf_found)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info("ConfigMap not found - will create")
+		config_map := r.createConfigMap(blender_render)
+		log.Info("Creating a new Configmap", "ConfigMap.Namespace", config_map.Namespace, "ConfigMap.Name", config_map.Name)
+		err = r.Create(ctx, config_map)
+		if err != nil {
+			log.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", config_map.Namespace, "ConfigMap.Name", config_map.Name)
+			return ctrl.Result{}, err
+		}
+		// Deployment created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
 	} else if err != nil {
 		log.Error(err, "Failed to get ConfigMap")
 		return ctrl.Result{}, err
@@ -89,42 +98,149 @@ func (r *BlenderRenderReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	job_found := &batchv1.Job{}
 	err = r.Get(ctx, types.NamespacedName{Name: blender_render.Name, Namespace: blender_render.Namespace}, job_found)
 	if err != nil && errors.IsNotFound(err) {
-		// Define a new deployment
-		log.Info("Creating a new Job")
-		return ctrl.Result{}, nil
-		//dep := r.deploymentForMemcached(memcached)
-		//log.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
-		//err = r.Create(ctx, dep)
-		//if err != nil {
-		//	log.Error(err, "Failed to create new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
-		//	return ctrl.Result{}, err
-		//}
-		//// Deployment created successfully - return and requeue
-		//return ctrl.Result{Requeue: true}, nil
+		// Define a new Job
+		job := r.createJob(blender_render)
+		log.Info("Creating a new Job", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
+		err = r.Create(ctx, job)
+		if err != nil {
+			log.Info("Failed to create new Job", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
 	} else if err != nil {
-		log.Error(err, "Failed to get Deployment")
+		log.Error(err, "Failed to get Job")
 		return ctrl.Result{}, err
+	}
+
+	// Update the BlenderRender status with the Job conditions
+	if !reflect.DeepEqual(job_found.Status.Conditions, blender_render.Status.Conditions) {
+		blender_render.Status.Conditions = job_found.Status.Conditions
+		err := r.Status().Update(ctx, blender_render)
+		if err != nil {
+			log.Error(err, "Failed to update BlenderRender status")
+		}
 	}
 
 	return ctrl.Result{}, nil
 }
 
 func (r *BlenderRenderReconciler) createConfigMap(blender_render *blenderv1alpha1.BlenderRender) *corev1.ConfigMap {
-	// labels := labelsForBlenderRender(blender_render.Name)
+	labels := labelsForBlenderRender(blender_render.Name)
 
 	config_map := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      blender_render.Name,
 			Namespace: blender_render.Namespace,
+			Labels:    labels,
 		},
-		Data: {
-			blend_location: blender_render.Spec.BlendLocation,
+		Data: map[string]string{
+			"blend_location": blender_render.Spec.BlendLocation,
+			"render_type":    blender_render.Spec.RenderType,
+			"s3_endpoint":    blender_render.Spec.S3Endpoint,
+			"s3_key":         blender_render.Spec.S3Key,
+			"s3_secret":      blender_render.Spec.S3Secret,
 		},
 	}
 
 	// set BlenderRender instance as the owner and controller
 	ctrl.SetControllerReference(blender_render, config_map, r.Scheme)
 	return config_map
+}
+
+func (r *BlenderRenderReconciler) createJob(blender_render *blenderv1alpha1.BlenderRender) *batchv1.Job {
+	labels := labelsForBlenderRender(blender_render.Name)
+	back_off_limit := int32(1)
+
+	blend_location_source_keyselector := corev1.ConfigMapKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{Name: blender_render.Name},
+		Key:                  "blend_location",
+	}
+
+	blend_location_source := corev1.EnvVarSource{
+		ConfigMapKeyRef: &blend_location_source_keyselector,
+	}
+
+	render_type_source_keyselector := corev1.ConfigMapKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{Name: blender_render.Name},
+		Key:                  "render_type",
+	}
+
+	render_type_source := corev1.EnvVarSource{
+		ConfigMapKeyRef: &render_type_source_keyselector,
+	}
+
+	s3_endpoint_source_keyselector := corev1.ConfigMapKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{Name: blender_render.Name},
+		Key:                  "s3_endpoint",
+	}
+
+	s3_endpoint_source := corev1.EnvVarSource{
+		ConfigMapKeyRef: &s3_endpoint_source_keyselector,
+	}
+
+	s3_key_source_keyselector := corev1.ConfigMapKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{Name: blender_render.Name},
+		Key:                  "s3_key",
+	}
+
+	s3_key_source := corev1.EnvVarSource{
+		ConfigMapKeyRef: &s3_key_source_keyselector,
+	}
+
+	s3_secret_source_keyselector := corev1.ConfigMapKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{Name: blender_render.Name},
+		Key:                  "s3_secret",
+	}
+
+	s3_secret_source := corev1.EnvVarSource{
+		ConfigMapKeyRef: &s3_secret_source_keyselector,
+	}
+
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      blender_render.Name,
+			Namespace: blender_render.Namespace,
+			Labels:    labels,
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit: &back_off_limit,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy: "Never",
+					Containers: []corev1.Container{{
+						Name:  "blender",
+						Image: "quay.io/openshiftdemos/blender-remote:latest",
+						Env: []corev1.EnvVar{
+							{
+								Name:      "BLEND_LOCATION",
+								ValueFrom: &blend_location_source,
+							},
+							{
+								Name:      "RENDER_TYPE",
+								ValueFrom: &render_type_source,
+							},
+							{
+								Name:      "S3_ENDPOINT",
+								ValueFrom: &s3_endpoint_source,
+							},
+							{
+								Name:      "S3_KEY",
+								ValueFrom: &s3_key_source,
+							},
+							{
+								Name:      "S3_SECRET",
+								ValueFrom: &s3_secret_source,
+							},
+						},
+					}},
+				},
+			},
+		},
+	}
+
+	// set BlenderRender instance as the owner and controller
+	ctrl.SetControllerReference(blender_render, job, r.Scheme)
+	return job
 }
 
 // labelsForBlenderRender returns the labels for selecting the resources

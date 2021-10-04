@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -45,11 +46,11 @@ type BlenderRenderSpec struct {
 }
 
 // BlenderRenderStatus defines the observed state of BlenderRender
-type BlenderRenderStatus struct {
+type BlenderRenderJobStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	RenderJobStatus string `json:"render_job_status"`
+	Conditions []batchv1.JobCondition `json:"conditions"`
 }
 
 //+kubebuilder:object:root=true
@@ -60,8 +61,8 @@ type BlenderRender struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   BlenderRenderSpec   `json:"spec,omitempty"`
-	Status BlenderRenderStatus `json:"status,omitempty"`
+	Spec   BlenderRenderSpec      `json:"spec,omitempty"`
+	Status BlenderRenderJobStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true

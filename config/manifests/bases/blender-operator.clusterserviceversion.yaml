@@ -1,0 +1,49 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: blender-operator.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: BlenderRender is the Schema for the blenderrenders API
+      displayName: Blender Render
+      kind: BlenderRender
+      name: blenderrenders.blender.openshiftdemos.github.io
+      version: v1alpha1
+  description: An operator that takes self-contained .blend files as input and remote-renders
+    in a Kubernetes cluster using cluster resources.
+  displayName: Blender Render Operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - blender
+  - remote render
+  links:
+  - name: Blender Operator
+    url: https://blender-operator.domain
+  maintainers:
+  - email: erikmjacobs@gmail.com
+    name: Erik Jacobs
+  maturity: alpha
+  provider:
+    name: Red Hat
+  version: 0.0.0
