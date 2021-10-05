@@ -1,0 +1,11 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: blender-operator
+spec:
+  channel: alpha
+  installPlanApproval: Automatic
+  name: blender-operator
+  source: blenderoperator-catalog
+  sourceNamespace: openshift-marketplace
+  startingCSV: blender-operator.v0.0.1
